@@ -611,5 +611,42 @@ class QueryDslBasicTest {
         return usernameEq(usernameParam).and(ageEq(ageParam));
     }
 
-    
+    @Test
+    void bulkUpdate() {
+        long count = query
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(7))
+                .execute();
+
+        assertThat(count).isEqualTo(2);
+
+        em.flush();
+        em.clear();
+
+        List<Member> result = query.selectFrom(member)
+                .join(member.team, team)
+                .fetchJoin()
+                .fetch();
+
+        assertThat(result).extracting(Member::getUsername).containsExactly("비회원", "비회원", "치타", "둘리");
+        assertThat(result).extracting(Member::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+    @Test
+    void bulkAdd(){
+        query
+                .update(member)
+                .set(member.age, member.age.add(1))
+                .execute();
+    }
+
+    @Test
+    void bulkDelete(){
+        query
+                .delete(member)
+                .execute();
+    }
+
+
 }
