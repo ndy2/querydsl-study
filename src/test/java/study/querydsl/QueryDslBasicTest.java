@@ -170,4 +170,18 @@ class QueryDslBasicTest {
         assertThat(hoonee.getUsername()).isEqualTo("훈이");
         assertThat(nullmember.getUsername()).isNull();
     }
+
+    @Test
+    void paging() {
+        List<Member> fetch = query
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetch();
+
+        assertThat(fetch).hasSize(2);
+    }
+
+
 }
