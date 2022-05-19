@@ -14,6 +14,7 @@ import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -282,4 +283,40 @@ class QueryDslBasicTest {
         }
     }
 
+    @Autowired
+    EntityManagerFactory emf;
+
+    /**
+     * no fetch join
+     */
+    @Test
+    void no_fetch_join() {
+        Member findMember = query
+                .selectFrom(member)
+                .where(member.username.eq("짱구"))
+                .fetchOne();
+
+        assertThat(emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam()))
+                .as("페치 조인 미적용").isFalse();
+
+        findMember.getTeam().getName();
+        assertThat(emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam()))
+                .as("이제 로딩됨").isTrue();
+    }
+
+    /**
+     * fetch join
+     */
+    @Test
+    public void fetch_join() throws Exception {
+        Member findMember = query
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin()
+                .where(member.username.eq("짱구"))
+                .fetchOne();
+
+        boolean loaded =
+                emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("페치 조인 적용").isTrue();
+    }
 }
