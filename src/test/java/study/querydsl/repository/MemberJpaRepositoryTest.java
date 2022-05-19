@@ -1,6 +1,5 @@
 package study.querydsl.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +14,6 @@ import javax.persistence.EntityManager;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static study.querydsl.entity.QMember.member;
 
 @SpringBootTest
 @Transactional
@@ -70,6 +68,21 @@ class MemberJpaRepositoryTest {
         cond.setAgeLoe(10);
 
         List<MemberTeamDto> result = repository.searchByBuilder(cond);
+
+        assertThat(result).extracting(MemberTeamDto::getUsername).containsExactly("짱구", "유리");
+        assertThat(result).extracting(MemberTeamDto::getAge).containsExactly(5, 6);
+        assertThat(result).extracting(MemberTeamDto::getTeamName).containsExactly("해바라기반", "해바라기반");
+    }
+
+    @Test
+    void searchTest_다중_where() {
+        initData();
+
+        MemberSearchCondition cond = new MemberSearchCondition();
+        cond.setTeamName("해바라기반");
+        cond.setAgeLoe(10);
+
+        List<MemberTeamDto> result = repository.search(cond);
 
         assertThat(result).extracting(MemberTeamDto::getUsername).containsExactly("짱구", "유리");
         assertThat(result).extracting(MemberTeamDto::getAge).containsExactly(5, 6);
