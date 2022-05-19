@@ -2,6 +2,7 @@ package study.querydsl;
 
 
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static study.querydsl.entity.QMember.member;
+import static study.querydsl.entity.QTeam.team;
 
 @SpringBootTest
 @Transactional
@@ -39,7 +41,7 @@ class QueryDslBasicTest {
 
         Member member1 = new Member("짱구", 5, teamA);
         Member member2 = new Member("유리", 6, teamA);
-        Member member3 = new Member("치타", 5, teamB);
+        Member member3 = new Member("치타", 7, teamB);
         Member member4 = new Member("둘리", 8, teamB);
 
         em.persist(member1);
@@ -183,5 +185,48 @@ class QueryDslBasicTest {
         assertThat(fetch).hasSize(2);
     }
 
+    @Test
+    void aggregation() {
+        List<Tuple> result = query
+                .select(
+                        member.count(),
+                        member.age.sum(),
+                        member.age.avg(),
+                        member.age.max(),
+                        member.age.min()
+                )
+                .from(member)
+                .fetch();
 
+        Tuple tuple = result.get(0);
+        assertThat(tuple.get(member.count())).isEqualTo(4);
+        assertThat(tuple.get(member.age.sum())).isEqualTo(26);
+        assertThat(tuple.get(member.age.avg())).isEqualTo(6.5);
+        assertThat(tuple.get(member.age.max())).isEqualTo(8);
+        assertThat(tuple.get(member.age.min())).isEqualTo(5);
+
+    }
+
+    /**
+     * 팀의 이름과 각 팀의 나이 함
+     */
+    @Test
+    void groupBy() {
+        List<Tuple> result = query
+                .select(team.name, member.age.sum())
+                .from(member)
+                .join(member.team, team)
+                .groupBy(team.name)
+                .orderBy(team.name.desc())
+                .fetch();
+
+        Tuple tupleA = result.get(0);
+        Tuple tupleB = result.get(1);
+
+        assertThat(tupleA.get(team.name)).isEqualTo("해바라기반");
+        assertThat(tupleA.get(member.age.sum())).isEqualTo(11);
+        assertThat(tupleB.get(team.name)).isEqualTo("장미반");
+        assertThat(tupleB.get(member.age.sum())).isEqualTo(15);
+
+    }
 }
