@@ -3,6 +3,7 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -318,5 +319,61 @@ class QueryDslBasicTest {
         boolean loaded =
                 emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("페치 조인 적용").isTrue();
+    }
+
+    @Test
+    void sub_query() {
+        QMember sub = new QMember("sub");
+
+        Member member = query
+                .selectFrom(QMember.member)
+                .where(QMember.member.age.eq(
+                        JPAExpressions
+                                .select(sub.age.max())
+                                .from(sub)
+                ))
+                .fetchOne();
+
+        assertThat(member.getUsername()).isEqualTo("둘리");
+    }
+
+    @Test
+    void sub_query_in() {
+        QMember sub = new QMember("sub");
+
+        List<Member> members = query
+                .selectFrom(member)
+                .where(member.age.in(
+                        JPAExpressions
+                                .select(sub.age)
+                                .from(sub)
+                                .where(sub.age.lt(7))
+                ))
+                .fetch();
+
+        assertThat(members)
+                .extracting(Member::getUsername)
+                .containsExactly("짱구", "유리");
+    }
+
+    @Test
+    void select_절_sub_query() {
+        QMember sub = new QMember("sub");
+
+        List<Tuple> fetch = query
+                .select(member.username,
+                        JPAExpressions
+                                .select(sub.age.avg())
+                                .from(sub)
+                ).from(member)
+                .fetch();
+
+        for (Tuple tuple : fetch) {
+            System.out.println("username = " + tuple.get(member.username));
+            System.out.println("age = " +
+                    tuple.get(JPAExpressions
+                            .select(sub.age.avg())
+                            .from(sub)));
+        }
     }
 }
