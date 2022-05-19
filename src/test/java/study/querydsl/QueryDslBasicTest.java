@@ -1,6 +1,7 @@
 package study.querydsl;
 
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,10 @@ import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static study.querydsl.entity.QMember.*;
 import static study.querydsl.entity.QMember.member;
 
 @SpringBootTest
@@ -107,5 +111,43 @@ class QueryDslBasicTest {
 
         assertThat(findMember.getUsername()).isEqualTo("짱구");
         assertThat(findMember.getAge()).isEqualTo(5);
+    }
+
+    @Test
+    void resultFetch() {
+        List<Member> fetch = query
+                .selectFrom(member)
+                .fetch();
+
+        Member fetchOne = query
+                .selectFrom(member)
+                .fetchOne();
+
+        Member fetchFirst = query
+                .selectFrom(member)
+                .fetchFirst();
+    }
+
+    @Test
+    void count() {
+        // count 가 필요하면 별도로 쿼리를 날리자
+        QueryResults<Member> results = query
+                .selectFrom(member)
+                .fetchResults();
+
+        long count = results.getTotal();
+        List<Member> content = results.getResults();
+
+        // 이것도 deprecated
+        long fetchCount = query
+                .selectFrom(member)
+                .fetchCount();
+
+        //이렇게 쓰자
+        Long totalCount = query
+                //.select(Wildcard.count) //select count(*)
+                .select(member.count()) //select count(member.id)
+                .from(member)
+                .fetchOne();
     }
 }
