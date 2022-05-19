@@ -229,4 +229,57 @@ class QueryDslBasicTest {
         assertThat(tupleB.get(member.age.sum())).isEqualTo(15);
 
     }
+
+    /**
+     * 조인
+     */
+    @Test
+    void join() {
+        List<Member> results = query
+                .selectFrom(member)
+                .join(member.team, team)
+                .where(team.name.eq("해바라기반"))
+                .fetch();
+
+        assertThat(results)
+                .extracting(Member::getUsername)
+                .containsExactly("짱구", "유리");
+    }
+
+    /**
+     * Select m, t from Member m left join m.team t on t.name = `해바라기반`
+     */
+    @Test
+    void join_on_filtering() {
+        List<Tuple> result = query
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("해바라기반"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+
+
+    /**
+     * inner join -> on, where 똑같음
+     */
+    @Test
+    void inner_join_on_혹은_where_filtering() {
+        List<Tuple> result = query
+                .select(member, team)
+                .from(member)
+                .join(member.team, team)
+//                .on(team.name.eq("해바라기반"))
+                .where(team.name.eq("해바라기반"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+
 }
