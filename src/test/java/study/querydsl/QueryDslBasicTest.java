@@ -440,4 +440,26 @@ class QueryDslBasicTest {
                 .where(member.username.eq("member1"))
                 .fetchOne();
     }
+
+    @Test
+    void simpleProjection() {
+        List<String> result = query
+                .select(member.username)
+                .from(member)
+                .fetch();
+
+        assertThat(result).containsExactly("짱구", "유리", "치타", "둘리");
+    }
+
+    @Test
+    void tupleProjection() {
+        List<Tuple> result = query
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(t -> t.get(member.username)).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(t -> t.get(member.age)).containsExactly(5, 6, 7, 8);
+    }
+
 }
