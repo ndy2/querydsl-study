@@ -4,7 +4,9 @@ package study.querydsl;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -568,4 +570,46 @@ class QueryDslBasicTest {
                 .where(builder)
                 .fetch();
     }
+
+    @Test
+    void 동적쿼리_WhereParam() {
+        String usernameArg = "짱구";
+        Integer ageArg = 5;
+
+//        List<Member> result = searchMember2(usernameArg, ageArg);
+        List<Member> result = searchMember3(usernameArg, ageArg);
+        assertThat(result).hasSize(1);
+    }
+
+    List<Member> searchMember2(String usernameParam, Integer ageParam) {
+        return query
+                .selectFrom(member)
+                .where(
+                        usernameEq(usernameParam),
+                        ageEq(ageParam)
+                )
+                .fetch();
+    }
+
+    List<Member> searchMember3(String usernameParam, Integer ageParam) {
+        return query
+                .selectFrom(member)
+                .where(allEq(usernameParam, ageParam))
+                .fetch();
+    }
+
+
+    private BooleanExpression usernameEq(String usernameParam) {
+        return usernameParam != null ? member.username.eq(usernameParam) : null;
+    }
+
+    private BooleanExpression ageEq(Integer ageParam) {
+        return ageParam != null ? member.age.eq(ageParam) : null;
+    }
+
+    private BooleanExpression allEq(String usernameParam, Integer ageParam){
+        return usernameEq(usernameParam).and(ageEq(ageParam));
+    }
+
+    
 }
