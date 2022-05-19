@@ -13,11 +13,9 @@ import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
-
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static study.querydsl.entity.QMember.*;
 import static study.querydsl.entity.QMember.member;
 
 @SpringBootTest
@@ -149,5 +147,27 @@ class QueryDslBasicTest {
                 .select(member.count()) //select count(member.id)
                 .from(member)
                 .fetchOne();
+    }
+
+    @Test
+    void sort() {
+        //이름 올림 차순 이름이 없으면 마지막 (nulls last)
+        em.persist(new Member(null, 100));
+        em.persist(new Member("훈이", 100));
+        em.persist(new Member("철수", 100));
+
+        List<Member> fetch = query
+                .selectFrom(member)
+                .where(member.age.eq(100))
+                .orderBy(member.age.desc(), member.username.asc().nullsLast())
+                .fetch();
+
+        Member chulsoo = fetch.get(0);
+        Member hoonee = fetch.get(1);
+        Member nullmember = fetch.get(2);
+
+        assertThat(chulsoo.getUsername()).isEqualTo("철수");
+        assertThat(hoonee.getUsername()).isEqualTo("훈이");
+        assertThat(nullmember.getUsername()).isNull();
     }
 }
