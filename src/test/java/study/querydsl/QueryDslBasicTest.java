@@ -36,9 +36,9 @@ class QueryDslBasicTest {
         em.persist(teamB);
 
         Member member1 = new Member("짱구", 5, teamA);
-        Member member2 = new Member("유리", 5, teamA);
+        Member member2 = new Member("유리", 6, teamA);
         Member member3 = new Member("치타", 5, teamB);
-        Member member4 = new Member("둘리", 5, teamB);
+        Member member4 = new Member("둘리", 8, teamB);
 
         em.persist(member1);
         em.persist(member2);
@@ -56,7 +56,7 @@ class QueryDslBasicTest {
         Member findMember = em.createQuery("select m from Member m where m.username = :username", Member.class)
                 .setParameter("username", "짱구")
                 .getSingleResult();
-        
+
         assertThat(findMember.getUsername()).isEqualTo("짱구");
     }
 
@@ -81,5 +81,31 @@ class QueryDslBasicTest {
                 .fetchOne();
 
         assertThat(findMember.getUsername()).isEqualTo("짱구");
+    }
+
+    @Test
+    void search() {
+        Member findMember = query
+                .selectFrom(member)
+                .where(member.username.eq("짱구")
+                        .and(member.age.eq(5)))
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("짱구");
+        assertThat(findMember.getAge()).isEqualTo(5);
+    }
+
+    @Test
+    void searchAndParam() {
+        Member findMember = query
+                .selectFrom(member)
+                .where(
+                        member.username.eq("짱구"),
+                        member.age.eq(5)
+                )
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("짱구");
+        assertThat(findMember.getAge()).isEqualTo(5);
     }
 }
