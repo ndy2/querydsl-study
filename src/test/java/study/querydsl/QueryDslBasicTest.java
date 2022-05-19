@@ -1,6 +1,7 @@
 package study.querydsl;
 
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
@@ -410,7 +411,7 @@ class QueryDslBasicTest {
                 .when(member.age.between(21, 30)).then(1)
                 .otherwise(3);
 
-         List<Tuple> result = query
+        List<Tuple> result = query
                 .select(member.username, member.age, rankPath)
                 .from(member)
                 .orderBy(rankPath.desc())
@@ -523,7 +524,7 @@ class QueryDslBasicTest {
                         member.username.as("name"),
                         as(
                                 select(sub.age.max())
-                                .from(sub), "age"))
+                                        .from(sub), "age"))
                 )
                 .from(member)
                 .fetch();
@@ -542,5 +543,29 @@ class QueryDslBasicTest {
 
         assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
         assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+    @Test
+    void 동적쿼리_BooleanBuilder() {
+        String usernameArg = "짱구";
+        Integer ageArg = 5;
+
+        List<Member> result = searchMember(usernameArg, ageArg);
+        assertThat(result).hasSize(1);
+    }
+
+    List<Member> searchMember(String usernameParam, Integer ageParam) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if (ageParam != null) {
+            builder.and(member.age.eq(ageParam));
+        }
+        if (usernameParam != null) {
+            builder.and(member.username.eq(usernameParam));
+        }
+
+        return query
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
     }
 }
