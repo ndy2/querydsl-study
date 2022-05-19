@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
 import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
@@ -529,5 +530,17 @@ class QueryDslBasicTest {
 
         assertThat(result).extracting(UserDto::getName).containsExactly("짱구", "유리", "치타", "둘리");
         assertThat(result).extracting(UserDto::getAge).containsExactly(8, 8, 8, 8);
+    }
+
+    @Test
+    void dtoProjectionQuerydsl_QueryProjection() {
+
+        List<MemberDto> result = query
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
     }
 }
