@@ -3,16 +3,18 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
@@ -21,6 +23,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import java.util.List;
 
+import static com.querydsl.core.types.ExpressionUtils.as;
+import static com.querydsl.jpa.JPAExpressions.select;
 import static org.assertj.core.api.Assertions.assertThat;
 import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
@@ -331,8 +335,7 @@ class QueryDslBasicTest {
         Member member = query
                 .selectFrom(QMember.member)
                 .where(QMember.member.age.eq(
-                        JPAExpressions
-                                .select(sub.age.max())
+                        select(sub.age.max())
                                 .from(sub)
                 ))
                 .fetchOne();
@@ -347,8 +350,7 @@ class QueryDslBasicTest {
         List<Member> members = query
                 .selectFrom(member)
                 .where(member.age.in(
-                        JPAExpressions
-                                .select(sub.age)
+                        select(sub.age)
                                 .from(sub)
                                 .where(sub.age.lt(7))
                 ))
@@ -365,8 +367,7 @@ class QueryDslBasicTest {
 
         List<Tuple> fetch = query
                 .select(member.username,
-                        JPAExpressions
-                                .select(sub.age.avg())
+                        select(sub.age.avg())
                                 .from(sub)
                 ).from(member)
                 .fetch();
@@ -374,8 +375,7 @@ class QueryDslBasicTest {
         for (Tuple tuple : fetch) {
             System.out.println("username = " + tuple.get(member.username));
             System.out.println("age = " +
-                    tuple.get(JPAExpressions
-                            .select(sub.age.avg())
+                    tuple.get(select(sub.age.avg())
                             .from(sub)));
         }
     }
@@ -409,7 +409,7 @@ class QueryDslBasicTest {
                 .when(member.age.between(21, 30)).then(1)
                 .otherwise(3);
 
-        List<Tuple> result = query
+         List<Tuple> result = query
                 .select(member.username, member.age, rankPath)
                 .from(member)
                 .orderBy(rankPath.desc())
@@ -462,4 +462,72 @@ class QueryDslBasicTest {
         assertThat(result).extracting(t -> t.get(member.age)).containsExactly(5, 6, 7, 8);
     }
 
+    @Test
+    void dtoProjectionJpql() {
+        List<MemberDto> result = em.createQuery("select new study.querydsl.dto.MemberDto(m.username, m.age) " +
+                        "from Member m", MemberDto.class)
+                .getResultList();
+
+        assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+    @Test
+    void dtoProjectionQuerydsl_세터() {
+        List<MemberDto> result = query
+                .select(Projections.bean(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+
+    @Test
+    void dtoProjectionQuerydsl_필드() {
+        List<MemberDto> result = query
+                .select(Projections.fields(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+    @Test
+    void dtoProjectionQuerydsl_생성자() {
+        List<MemberDto> result = query
+                .select(Projections.constructor(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(MemberDto::getUsername).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(MemberDto::getAge).containsExactly(5, 6, 7, 8);
+    }
+
+
+    @Test
+    void userdto_ProjectionQuerydsl_생성자() {
+        QMember sub = new QMember("sub");
+
+        List<UserDto> result = query
+                .select(Projections.constructor(UserDto.class,
+                        member.username.as("name"),
+                        as(
+                                select(sub.age.max())
+                                .from(sub), "age"))
+                )
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting(UserDto::getName).containsExactly("짱구", "유리", "치타", "둘리");
+        assertThat(result).extracting(UserDto::getAge).containsExactly(8, 8, 8, 8);
+    }
 }
