@@ -1,8 +1,11 @@
 package study.querydsl.repository;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
@@ -13,7 +16,6 @@ import javax.persistence.EntityManager;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -25,40 +27,8 @@ class MemberRepositoryTest {
     @Autowired
     MemberRepository repository;
 
-    @Test
-    void basicTest() {
-        Member member = new Member("짱구", 5);
-
-        repository.save(member);
-
-        Member findMember = repository.findById(member.getId()).get();
-        assertThat(findMember).isEqualTo(member);
-
-        List<Member> all = repository.findAll();
-        assertThat(all).containsExactly(member);
-
-        List<Member> members = repository.findByUsername("짱구");
-        assertThat(members).containsExactly(member);
-    }
-
-    @Test
-    void searchTest_다중_where() {
-        initData();
-
-        MemberSearchCondition cond = new MemberSearchCondition();
-        cond.setTeamName("해바라기반");
-        cond.setAgeLoe(10);
-
-        List<MemberTeamDto> result = repository.search(cond);
-
-        assertThat(result).extracting(MemberTeamDto::getUsername).containsExactly("짱구", "유리");
-        assertThat(result).extracting(MemberTeamDto::getAge).containsExactly(5, 6);
-        assertThat(result).extracting(MemberTeamDto::getTeamName).containsExactly("해바라기반", "해바라기반");
-    }
-
-
-
-    void initData() {
+    @BeforeEach
+    void setUp() {
         Team teamA = new Team("해바라기반");
         Team teamB = new Team("장미반");
 
@@ -79,5 +49,31 @@ class MemberRepositoryTest {
         em.clear();
 
         System.out.println("=====================");
+    }
+
+    @Test
+    void searchTest_다중_where() {
+        MemberSearchCondition cond = new MemberSearchCondition();
+        cond.setTeamName("해바라기반");
+        cond.setAgeLoe(10);
+
+        List<MemberTeamDto> result = repository.search(cond);
+
+        assertThat(result).extracting(MemberTeamDto::getUsername).containsExactly("짱구", "유리");
+        assertThat(result).extracting(MemberTeamDto::getAge).containsExactly(5, 6);
+        assertThat(result).extracting(MemberTeamDto::getTeamName).containsExactly("해바라기반", "해바라기반");
+    }
+
+
+    @Test
+    void searchPageTest_간단() {
+        MemberSearchCondition cond = new MemberSearchCondition();
+
+        Page<MemberTeamDto> page = repository.searchPageSimple(cond, Pageable.ofSize(3));
+        List<MemberTeamDto> result = page.getContent();
+
+        assertThat(result).extracting(MemberTeamDto::getUsername).containsExactly("짱구", "유리", "치타");
+        assertThat(result).extracting(MemberTeamDto::getAge).containsExactly(5, 6, 7);
+        assertThat(result).extracting(MemberTeamDto::getTeamName).containsExactly("해바라기반", "해바라기반", "장미반");
     }
 }
